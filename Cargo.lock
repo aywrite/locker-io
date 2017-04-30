@@ -1,0 +1,11 @@
+[root]
+name = "locker_io"
+version = "0.1.0"
+dependencies = [
+ "scytale 0.1.0",
+]
+
+[[package]]
+name = "scytale"
+version = "0.1.0"
+
