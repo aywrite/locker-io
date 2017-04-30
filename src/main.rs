@@ -2,6 +2,7 @@ extern crate scytale;
 
 use scytale::rot13::rot13;
 use std::io;
+use std::io::prelude::*;
 
 //TOTO
 // - Operate on files
@@ -10,15 +11,15 @@ use std::io;
 // - Implement cli flags/options
 
 fn main() {
-    println!("---Please enter some text to encrypt---");
+    
+    //read from stdin until EOF recived
     let mut plaintext = String::new();
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        plaintext = plaintext + line.unwrap().as_str() + "\n";
+    }
 
-    io::stdin().read_line(&mut plaintext)
-        .expect("Failed to read line");
-
-    println!("You entered the text:\n {}", plaintext);
-
+    //print encrypted text
     let ciphertext = rot13(plaintext.as_str());
-
-    println!("Output text:\n {}", ciphertext);
+    println!("{}", ciphertext);
 }
