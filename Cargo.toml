@@ -5,3 +5,4 @@ authors = ["awright502 <andrew.wright502@gmail.com>"]
 
 [dependencies]
 scytale = { path = "../scytale" }
+clap = "~2.19.0"
