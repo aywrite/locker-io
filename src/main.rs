@@ -4,14 +4,22 @@ extern crate scytale;
 use clap::{Arg, App, SubCommand};
 
 use scytale::rot13::rot13;
+use scytale::caesar_shift;
 use std::io;
 use std::io::prelude::*;
+use std::num;
 
 //TOTO
 // - Operate on files
 // - Operate on bytes
 // - Operate on multiline text
 // - Implement cli flags/options
+
+
+#[derive(Debug)]
+enum KeyError{
+    Parse(num::ParseIntError),
+}
 
 fn main() {
     let matches = App::new("cryptio")
@@ -21,6 +29,16 @@ fn main() {
                           .arg(Arg::with_name("input")
                                .index(1)
                                .help("Text to be encrypted"))
+                          .arg(Arg::with_name("key")
+                               .help("Key to use for encryption/decryption")
+                               .short("k")
+                               .long("key")
+                               .takes_value(true))
+                          .arg(Arg::with_name("algorithm")
+                               .help("Algorithm to use for encryption/decryption")
+                               .short("a")
+                               .long("algorithm")
+                               .takes_value(true))
                           .get_matches();
 
     //TODO seems like too many conversions between
@@ -31,9 +49,22 @@ fn main() {
         get_input_from_stdin()
     };
 
-    //print encrypted text
-    let ciphertext = rot13(input.as_str());
-    println!("{}", ciphertext);
+    let key = matches.value_of("key").unwrap();
+
+    let result = match matches.value_of("algorithm") {
+        Some("rot13") => rot13(input.as_str()),
+        Some("caesar") => caesar_shift::encrypt(
+            input.as_str(),
+            parse_key(key).unwrap(),
+        ),
+        _ => panic!(),
+    };
+
+    println!("{}", result);
+}
+
+fn parse_key(key: &str) -> Result<u32, KeyError> {
+    key.parse().map_err(KeyError::Parse)
 }
 
 fn get_input_from_stdin() -> String {
