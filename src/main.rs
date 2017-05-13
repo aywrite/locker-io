@@ -9,37 +9,34 @@ use std::io;
 use std::io::prelude::*;
 use std::num;
 
-//TOTO
+// TODO
 // - Operate on files
 // - Operate on bytes
-// - Operate on multiline text
-// - Implement cli flags/options
+// - Implement sub cmd analyse
+// - Implement sub cmd crack
 
 
 #[derive(Debug)]
-enum KeyError{
+enum KeyError {
     Parse(num::ParseIntError),
 }
 
-fn main() {
-    let matches = App::new("cryptio")
-                          .version("0.0.1")
-                          .author("Andrew W. <andrew.wright@gmail.com>")
-                          .about("Utility for encrypting/decrypting")
-                          .arg(Arg::with_name("input")
-                               .index(1)
-                               .help("Text to be encrypted"))
-                          .arg(Arg::with_name("key")
-                               .help("Key to use for encryption/decryption")
-                               .short("k")
-                               .long("key")
-                               .takes_value(true))
-                          .arg(Arg::with_name("algorithm")
-                               .help("Algorithm to use for encryption/decryption")
-                               .short("a")
-                               .long("algorithm")
-                               .takes_value(true))
-                          .get_matches();
+#[derive(Debug)]
+enum CommandError {
+    Unknown,
+}
+
+enum Command {
+    Encrypt,
+    Decrypt,
+}
+
+fn run_command(command: &Command, matches: clap::ArgMatches) -> Result<String, CommandError> {
+
+    let matches = match *command {
+        Command::Encrypt => matches.subcommand_matches("encrypt").unwrap(),
+        Command::Decrypt => matches.subcommand_matches("decrypt").unwrap(),
+    };
 
     //TODO seems like too many conversions between
     //String and &str see also input to encrypt below
@@ -51,16 +48,75 @@ fn main() {
 
     let key = matches.value_of("key").unwrap();
 
-    let result = match matches.value_of("algorithm") {
-        Some("rot13") => rot13(input.as_str()),
-        Some("caesar") => caesar_shift::encrypt(
-            input.as_str(),
-            parse_key(key).unwrap(),
-        ),
-        _ => panic!(),
+    //TODO remove nested match, replace with dynamic calls to algos?
+    match matches.value_of("algorithm") {
+        Some("rot13") => Ok(rot13(input.as_str())),
+        Some("caesar") => {
+            match *command {
+                Command::Encrypt => {
+                    Ok(caesar_shift::encrypt(input.as_str(), parse_key(key).unwrap()))
+                }
+                Command::Decrypt => {
+                    Ok(caesar_shift::decrypt(input.as_str(), parse_key(key).unwrap()))
+                }
+            }
+        }
+        _ => Err(CommandError::Unknown),
+    }
+}
+
+
+
+fn main() {
+
+    let matches = get_cli_args();
+
+    let command = if matches.is_present("encrypt") {
+        Command::Encrypt
+    } else if matches.is_present("decrypt") {
+        Command::Decrypt
+    } else {
+        panic!("Missing or invalid subcommand")
     };
 
+    let result = run_command(&command, matches).expect("Bother");
     println!("{}", result);
+}
+
+fn get_cli_args<'a>() -> clap::ArgMatches<'a> {
+    App::new("cryptio")
+        .version("0.0.1")
+        .author("Andrew W. <andrew.wright@gmail.com>")
+        .about("Utility for encrypting/decrypting")
+        .subcommand(SubCommand::with_name("encrypt")
+                        .arg(Arg::with_name("input")
+                                 .index(1)
+                                 .help("Text to be encrypted"))
+                        .arg(Arg::with_name("key")
+                                 .help("Key to use for encryption")
+                                 .short("k")
+                                 .long("key")
+                                 .takes_value(true))
+                        .arg(Arg::with_name("algorithm")
+                                 .help("Algorithm to use for encryption")
+                                 .short("a")
+                                 .long("algorithm")
+                                 .takes_value(true)))
+        .subcommand(SubCommand::with_name("decrypt")
+                        .arg(Arg::with_name("input")
+                                 .index(1)
+                                 .help("Text to be encrypted"))
+                        .arg(Arg::with_name("key")
+                                 .help("Key to use for decryption")
+                                 .short("k")
+                                 .long("key")
+                                 .takes_value(true))
+                        .arg(Arg::with_name("algorithm")
+                                 .help("Algorithm to use for decryption")
+                                 .short("a")
+                                 .long("algorithm")
+                                 .takes_value(true)))
+        .get_matches()
 }
 
 fn parse_key(key: &str) -> Result<u32, KeyError> {
