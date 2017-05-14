@@ -5,6 +5,7 @@ use clap::{Arg, App, SubCommand};
 
 use scytale::rot13::rot13;
 use scytale::caesar_shift;
+use scytale::vigenere;
 use std::io;
 use std::io::prelude::*;
 use std::num;
@@ -61,6 +62,12 @@ fn run_command(command: &Command, matches: clap::ArgMatches) -> Result<String, C
                 }
             }
         }
+        Some("vigenere") => {
+            match *command {
+                Command::Encrypt => Ok(vigenere::encrypt(input.as_str(), key)),
+                Command::Decrypt => Ok(vigenere::decrypt(input.as_str(), key)),
+            }
+        }
         _ => Err(CommandError::Unknown),
     }
 }
@@ -101,6 +108,7 @@ fn get_cli_args<'a>() -> clap::ArgMatches<'a> {
                                  .help("Algorithm to use for encryption")
                                  .short("a")
                                  .long("algorithm")
+                                 .possible_values(&["rot13", "caesar", "vigenere"])
                                  .takes_value(true)))
         .subcommand(SubCommand::with_name("decrypt")
                         .arg(Arg::with_name("input")
@@ -115,6 +123,7 @@ fn get_cli_args<'a>() -> clap::ArgMatches<'a> {
                                  .help("Algorithm to use for decryption")
                                  .short("a")
                                  .long("algorithm")
+                                 .possible_values(&["rot13", "caesar", "vigenere"])
                                  .takes_value(true)))
         .get_matches()
 }
